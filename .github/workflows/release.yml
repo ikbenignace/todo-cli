@@ -10,28 +10,42 @@ permissions:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: macos-latest
+          # macOS Intel (for MacBooks with Intel processors)
+          - name: macOS x86_64 (Intel)
+            os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: todo
             asset_name: todo-macos-x86_64
-          - os: macos-latest
+
+          # macOS Apple Silicon (for MacBooks with M1/M2/M3 chips)
+          - name: macOS ARM64 (Apple Silicon)
+            os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: todo
             asset_name: todo-macos-arm64
-          - os: ubuntu-latest
+
+          # Linux x86_64 (for Intel/AMD 64-bit PCs and servers)
+          - name: Linux x86_64 (Intel/AMD)
+            os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: todo
             asset_name: todo-linux-x86_64
-          - os: ubuntu-latest
+
+          # Linux ARM64 (for Raspberry Pi and ARM servers)
+          - name: Linux ARM64 (ARM)
+            os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: todo
             asset_name: todo-linux-arm64
-          - os: windows-latest
+
+          # Windows x86_64 (for 64-bit Windows PCs)
+          - name: Windows x86_64 (64-bit)
+            os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: todo.exe
             asset_name: todo-windows-x86_64.exe
@@ -45,12 +59,22 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
 
       - name: Build binary
+        env:
+          # Set the correct linker for cross-compilation
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Prepare artifact
