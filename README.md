@@ -1,6 +1,6 @@
 # Todo CLI - Simple Jira Ticket Creator
 
-A simple command-line tool to create Jira tickets in project MS with just one command.
+A simple command-line tool to create Jira tickets with just one command. Supports custom projects and shell completion.
 
 ## Quick Start
 
@@ -146,12 +146,105 @@ Follow the instructions in your browser to complete authentication.
 
 ## Usage
 
-Create a todo ticket in project MS:
+Create a todo ticket (defaults to MS project):
 
 ```bash
 todo "fix bug in login system"
 todo "implement new feature for dashboard"
 todo "update documentation for API"
+```
+
+Create a todo ticket in a specific project:
+
+```bash
+todo AA "implement authentication module"
+todo MS "fix authentication bug"
+todo PROJECT "your task description"
+```
+
+### What happens when you run this command?
+
+1. The tool checks if acli is installed
+2. It verifies you're authenticated with Jira
+3. It creates a Story-type ticket in the specified project (or MS if no project specified)
+4. It automatically assigns ticket to you
+5. It transitions the ticket status to "Selected for Development"
+6. It shows you the ticket number (e.g., "MS-123")
+
+### Example Output
+
+```
+$ todo "implement user authentication feature"
+✓ Work item MS-123 created: https://yourcompany.atlassian.net/browse/MS-123
+✓ Work item MS-123 has been successfully transitioned to Selected for Development
+
+$ todo AA "create epic for project"
+✓ Work item AA-45 created: https://yourcompany.atlassian.net/browse/AA-45
+✓ Work item AA-45 has been successfully transitioned to Selected for Development
+```
+
+## Shell Completion
+
+Enable tab completion for faster project entry:
+
+### Bash
+
+```bash
+# Generate completion script
+./target/release/todo completion --shell bash > ~/.local/share/bash-completion/completions/todo
+
+# Add to your ~/.bashrc
+echo "source ~/.local/share/bash-completion/completions/todo" >> ~/.bashrc
+
+# Restart your terminal or run:
+source ~/.bashrc
+```
+
+Or use the provided installer:
+
+```bash
+./scripts/install-completion-bash.sh
+```
+
+### Zsh
+
+```bash
+# Generate completion script
+./target/release/todo completion --shell zsh > ~/.zsh/completions/_todo
+
+# Add to your ~/.zshrc
+echo "fpath=(~/.zsh/completions \$fpath)" >> ~/.zshrc
+echo "autoload -U compinit && compinit" >> ~/.zshrc
+
+# Restart your terminal or run:
+source ~/.zshrc
+```
+
+Or use the provided installer:
+
+```bash
+./scripts/install-completion-zsh.sh
+```
+
+### PowerShell
+
+```powershell
+# Generate completion script
+.\target\release\todo.exe completion --shell powershell > $env:USERPROFILE\Documents\PowerShell\Completions\todo.ps1
+
+# Completions will load automatically in new PowerShell sessions
+```
+
+Or use the provided installer:
+
+```powershell
+.\scripts\install-completion.ps1
+```
+
+### Fish
+
+```bash
+todo completion --shell fish > ~/.config/fish/completions/todo.fish
 ```
 
 ### What happens when you run this command?

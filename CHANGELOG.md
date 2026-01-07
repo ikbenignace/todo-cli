@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-07
+
+### Added
+- Optional project parameter support (e.g., `todo PROJECT "summary"`)
+- Shell completion support for bash, zsh, fish, and PowerShell
+- `completion` command to generate shell completion scripts
+- Installation scripts for shell completions
+- Enhanced help messages with examples
+
+### Changed
+- Default project behavior: MS is now the default project
+- Updated README with shell completion instructions
+
 ## [0.2.0] - 2025-01-07
 
 ### Added

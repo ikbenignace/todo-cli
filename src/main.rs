@@ -1,19 +1,58 @@
-use clap::Parser;
+use clap::{CommandFactory, Parser, Subcommand, ValueHint};
+use clap_complete::{generate, Shell};
 use regex::Regex;
-use std::process::Command;
+use serde::Deserialize;
+use std::process::Command as ProcessCommand;
 use std::str;
 
 #[derive(Parser)]
 #[command(name = "todo")]
-#[command(about = "Create a Jira todo ticket in project MS", long_about = None)]
+#[command(about = "Create a Jira todo ticket", long_about = None)]
+#[command(arg_required_else_help = true)]
 struct Cli {
-    #[arg(required = true)]
-    summary: String,
+    #[arg(
+        value_name = "PROJECT",
+        help = "Jira project key (e.g., MS, AA)",
+        long_help = "Jira project key. Leave empty to use default (MS).",
+        value_hint = ValueHint::Other,
+        num_args = 0..=1
+    )]
+    project: Option<String>,
+
+    #[arg(
+        value_name = "SUMMARY",
+        help = "Ticket summary/description",
+        long_help = "The summary or description of the Jira ticket to create.",
+        num_args = 0..=1
+    )]
+    summary: Option<String>,
+
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    #[command(about = "Generate shell completion scripts")]
+    Completion {
+        #[arg(short, long, help = "Shell type (bash, zsh, fish, elvish, powershell)")]
+        shell: Shell,
+    },
+}
+
+#[derive(Deserialize)]
+struct Project {
+    key: String,
 }
 
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
+
+    if let Some(Commands::Completion { shell }) = cli.command {
+        print_completions(shell);
+        return;
+    }
 
     if !check_acli_available() {
         eprintln!("Error: acli is not installed or not in PATH");
@@ -27,11 +66,31 @@ async fn main() {
         std::process::exit(1);
     }
 
-    create_ticket(&cli.summary);
+    let project = cli.project.unwrap_or_else(|| "MS".to_string());
+    let summary = match cli.summary {
+        Some(s) => s,
+        None => {
+            eprintln!("Error: SUMMARY is required");
+            eprintln!("Usage: todo [PROJECT] SUMMARY");
+            eprintln!("Examples:");
+            eprintln!("  todo 'fix bug in login'");
+            eprintln!("  todo MS 'implement new feature'");
+            eprintln!("  todo AA 'create epic'");
+            std::process::exit(1);
+        }
+    };
+
+    create_ticket(&project, &summary);
+}
+
+fn print_completions(shell: Shell) {
+    let mut cmd = Cli::command();
+    let name = cmd.get_name().to_string();
+    generate(shell, &mut cmd, name, &mut std::io::stdout());
 }
 
 fn check_acli_available() -> bool {
-    let output = Command::new("acli")
+    let output = ProcessCommand::new("acli")
         .arg("--version")
         .output();
 
@@ -42,7 +101,7 @@ fn check_acli_available() -> bool {
 }
 
 fn check_acli_authenticated() -> bool {
-    let output = Command::new("acli")
+    let output = ProcessCommand::new("acli")
         .args(["jira", "auth", "status"])
         .output();
 
@@ -57,14 +116,31 @@ fn check_acli_authenticated() -> bool {
     }
 }
 
-fn create_ticket(summary: &str) {
-    let output = Command::new("acli")
+fn get_projects() -> Vec<String> {
+    let output = ProcessCommand::new("acli")
+        .args(["jira", "project", "list", "--json", "--limit", "100"])
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            match serde_json::from_str::<Vec<Project>>(&stdout) {
+                Ok(projects) => projects.iter().map(|p| p.key.clone()).collect(),
+                Err(_) => vec![],
+            }
+        }
+        _ => vec![],
+    }
+}
+
+fn create_ticket(project: &str, summary: &str) {
+    let output = ProcessCommand::new("acli")
         .args([
             "jira",
             "workitem",
             "create",
-            "--project", "MS",
-            "--type", "Task",
+            "--project", project,
+            "--type", "Story",
             "--summary", summary,
             "--assignee", "@me",
         ])
@@ -76,7 +152,7 @@ fn create_ticket(summary: &str) {
                 let stdout = String::from_utf8_lossy(&o.stdout);
                 print!("{}", stdout);
 
-                if let Some(ticket_key) = parse_ticket_key(&stdout) {
+                if let Some(ticket_key) = parse_ticket_key(&stdout, project) {
                     transition_ticket(&ticket_key);
                 }
             } else {
@@ -92,13 +168,13 @@ fn create_ticket(summary: &str) {
     }
 }
 
-fn parse_ticket_key(output: &str) -> Option<String> {
-    let re = Regex::new(r"MS-\d+").unwrap();
+fn parse_ticket_key(output: &str, project: &str) -> Option<String> {
+    let re = Regex::new(&format!(r"{}-\d+", project)).unwrap();
     re.find(output).map(|m| m.as_str().to_string())
 }
 
 fn transition_ticket(ticket_key: &str) {
-    let output = Command::new("acli")
+    let output = ProcessCommand::new("acli")
         .args([
             "jira",
             "workitem",
@@ -147,6 +223,7 @@ fn show_installation_instructions() {
             println!("    sudo apt-get install -y wget gnupg2");
             println!("    sudo mkdir -p -m 755 /etc/apt/keyrings");
             println!("    wget -nv -O- https://acli.atlassian.com/gpg/public-key.asc | sudo gpg --dearmor -o /etc/apt/keyrings/acli-archive-keyring.gpg");
+            println!("    sudo chmod go+r /etc/apt/keyrings/acli-archive-keyring.gpg");
             println!("    echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/acli-archive-keyring.gpg] https://acli.atlassian.com/linux/deb stable main\" | sudo tee /etc/apt/sources.list.d/acli.list > /dev/null");
             println!("    sudo apt update");
             println!("    sudo apt install -y acli");

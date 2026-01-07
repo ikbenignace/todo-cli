@@ -1,6 +1,6 @@
 [package]
 name = "todo-cli"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 [[bin]]
@@ -8,6 +8,9 @@ name = "todo"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 tokio = { version = "1.35", features = ["full"] }
 regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap_complete = "4.5"
