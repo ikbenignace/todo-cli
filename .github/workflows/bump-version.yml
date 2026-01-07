@@ -1,0 +1,46 @@
+name: Bump Version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Cargo.toml'
+
+jobs:
+  bump:
+    name: Create version tag
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get previous version
+        id: previous_version
+        run: |
+          PREV_VERSION=$(git show HEAD~1:Cargo.toml | grep '^version' | head -1 | sed 's/version = "\(.*\)"/\1/' | sed 's/"//g')
+          echo "version=$PREV_VERSION" >> $GITHUB_OUTPUT
+          echo "Previous version: $PREV_VERSION"
+
+      - name: Get current version
+        id: current_version
+        run: |
+          CURR_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/' | sed 's/"//g')
+          echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURR_VERSION"
+
+      - name: Compare versions and create tag
+        if: steps.previous_version.outputs.version != steps.current_version.outputs.version
+        run: |
+          NEW_VERSION="${{ steps.current_version.outputs.version }}"
+          echo "Creating tag v$NEW_VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
