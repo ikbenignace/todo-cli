@@ -1,4 +1,5 @@
 use clap::Parser;
+use regex::Regex;
 use std::process::Command;
 use std::str;
 
@@ -65,16 +66,21 @@ fn create_ticket(summary: &str) {
             "--project", "MS",
             "--type", "Task",
             "--summary", summary,
+            "--assignee", "@me",
         ])
         .output();
 
     match output {
         Ok(o) => {
             if o.status.success() {
-                let stdout = str::from_utf8(&o.stdout).unwrap_or("");
+                let stdout = String::from_utf8_lossy(&o.stdout);
                 print!("{}", stdout);
+
+                if let Some(ticket_key) = parse_ticket_key(&stdout) {
+                    transition_ticket(&ticket_key);
+                }
             } else {
-                let stderr = str::from_utf8(&o.stderr).unwrap_or("");
+                let stderr = String::from_utf8_lossy(&o.stderr);
                 eprintln!("Error creating ticket: {}", stderr);
                 std::process::exit(1);
             }
@@ -82,6 +88,41 @@ fn create_ticket(summary: &str) {
         Err(e) => {
             eprintln!("Error running acli: {}", e);
             std::process::exit(1);
+        }
+    }
+}
+
+fn parse_ticket_key(output: &str) -> Option<String> {
+    let re = Regex::new(r"MS-\d+").unwrap();
+    re.find(output).map(|m| m.as_str().to_string())
+}
+
+fn transition_ticket(ticket_key: &str) {
+    let output = Command::new("acli")
+        .args([
+            "jira",
+            "workitem",
+            "transition",
+            "--key", ticket_key,
+            "--status", "Selected for Development",
+            "--yes",
+        ])
+        .output();
+
+    match output {
+        Ok(o) => {
+            if o.status.success() {
+                let stdout = String::from_utf8_lossy(&o.stdout);
+                if !stdout.is_empty() {
+                    println!("{}", stdout.trim());
+                }
+            } else {
+                let stderr = String::from_utf8_lossy(&o.stderr);
+                eprintln!("Warning: Could not transition ticket status: {}", stderr);
+            }
+        }
+        Err(e) => {
+            eprintln!("Warning: Could not transition ticket status: {}", e);
         }
     }
 }

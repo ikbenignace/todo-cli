@@ -159,13 +159,16 @@ todo "update documentation for API"
 1. The tool checks if acli is installed
 2. It verifies you're authenticated with Jira
 3. It creates a Story-type ticket in project MS
-4. It shows you the ticket number (e.g., "MS-123")
+4. It automatically assigns the ticket to you
+5. It transitions the ticket status to "Selected for Development"
+6. It shows you the ticket number (e.g., "MS-123")
 
 ### Example Output
 
 ```
 $ todo "implement user authentication feature"
 ✓ Work item MS-123 created: https://yourcompany.atlassian.net/browse/MS-123
+✓ Work item MS-123 has been successfully transitioned to Selected for Development
 ```
 
 ## Troubleshooting

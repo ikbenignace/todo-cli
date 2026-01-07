@@ -7,15 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-01-07
+
 ### Added
-- Initial release
-- Create Jira tickets in project MS
-- Automatic acli installation check
-- Automatic acli authentication check
-- Platform-specific installation instructions
-- GitHub Actions for automated releases
-- Pre-built binaries for macOS, Linux, and Windows
-- One-line install scripts for macOS/Linux and Windows
+- Automatic ticket assignment to creator (@me)
+- Automatic status transition to "Selected for Development"
+- Added regex dependency for ticket key parsing
 
 ## [0.1.0] - 2025-01-07
 
