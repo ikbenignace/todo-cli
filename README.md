@@ -215,6 +215,32 @@ cargo build --release
 cp target/release/todo /usr/local/bin/todo  # macOS/Linux
 ```
 
+## Making a Release (For Contributors)
+
+To create a new release:
+
+1. Update the version in `Cargo.toml`
+2. Commit and push the change:
+   ```bash
+   git add Cargo.toml
+   git commit -m "bump: version to X.Y.Z"
+   git push origin main
+   ```
+3. GitHub Actions will automatically:
+   - Create a git tag (e.g., `v0.2.0`)
+   - Trigger the release workflow
+   - Build binaries for all platforms
+   - Create a GitHub release
+
+**Note:** Adding `[skip ci]` to your commit message will skip automated workflows during development.
+
+The release workflow builds binaries for:
+- macOS x86_64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Linux x86_64 (Intel/AMD)
+- Linux ARM64 (ARM)
+- Windows x86_64 (64-bit)
+
 ## Support
 
 - GitHub Issues: [https://github.com/ikbenignace/todo-cli/issues](https://github.com/ikbenignace/todo-cli/issues)
